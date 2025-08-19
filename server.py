@@ -176,7 +176,7 @@ def gameremove():
     if not (args['serverid'],args['type']) in ids[args['gameid']]:
         return 'Not found',404
     ids[args['gameid']].remove((args['serverid'],args['type']))
-    #set().remove()
+    #set().remove()#
     return 'Success'
 @app.route('/game/add')
 def gameadd():
