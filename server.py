@@ -149,12 +149,25 @@ logout - alias for exit\r
 help - this page xd\r
 server - goes into a server\r
 players - lists out players\r
+kick - Kicks player\r
 """)
                     if command in ["exit", "quit", "logout"]:
                         channel.send("Bye!\r\n")
                         channel.close()
                         transport.close()
                         return
+                    if command=='kick':
+                        if exec_enviroment=='global':
+                            for i in ids[server.username]:
+                                success = ask_server(server.username,i[0],{"type":"kick","player":' '.join(args)})
+                                channel.send('----' + i[0] + '----\r\n')
+
+                                if success[1]:
+                                    channel.send('Error fetching...\r\n')
+                                else:
+                                    success = json.loads(success[0])['msg']
+                                    channel.send(success + '\r\n')
+ 
                     if command=='players':
                         # if we are in global
                         if exec_enviroment=='global':
@@ -277,7 +290,7 @@ def slash():
     if request.args['gameid'] in games.keys():
         return 'Game already used.'
     games[request.args['gameid']] = request.args['key']
-    
+    save_games()
     return 'Hello from flask!'
 
 
@@ -390,6 +403,9 @@ if os.path.isfile('auth.json'):
     GAME_AUTH = json.load(open('auth.json','r'))
 if os.path.isfile('game.json'):
     games = json.load(open('game.json','r'))
+    for i in games.keys():
+        if not i in ids.keys():
+            ids[i] = set()
 if __name__ == "__main__":
     threading.Thread(target=app.run,daemon=1).start()
     start_ssh_server()
