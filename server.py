@@ -106,6 +106,10 @@ def handle_client(client):
             break
 
         for ch in data.decode(errors="ignore"):
+            if exec_enviroment!='global':
+                if not exec_enviroment in ids[server.username].keys():
+                    exec_enviroment = 'global'
+                   # channel.send("Yo")
             if (prevprevchar == '\x1b') and (prevchar == '['):
                 # hex codes handled here
                 if ch=='A':
@@ -158,7 +162,8 @@ kick - Kicks player\r
                         return
                     if command=='kick':
                         if exec_enviroment=='global':
-                            for i in ids[server.username]:
+                            new_thing = ids[server.username]
+                            for i in new_thing:
                                 success = ask_server(server.username,i[0],{"type":"kick","player":' '.join(args)})
                                 channel.send('----' + i[0] + '----\r\n')
 
@@ -167,6 +172,14 @@ kick - Kicks player\r
                                 else:
                                     success = json.loads(success[0])['msg']
                                     channel.send(success + '\r\n')
+                        else:
+                            success = ask_server(server.username,exec_enviroment,{"type":"kick","player":' '.join(args)})
+                            #channel.send('----' + i[0] + '----\r\n')
+                            if success[1]:
+                                channel.send('Error fetching...\r\n')
+                            else:
+                                success = json.loads(success[0])['msg']
+                                channel.send(success + '\r\n')
  
                     if command=='players':
                         # if we are in global
