@@ -79,30 +79,44 @@ def handle_client(client):
         return
     confirming_pw = 0
     exec_enviroment = 'global'
+    console_format = '({exec}) '
+    format_console = lambda: console_format.format(exec=exec_enviroment)
 
     if server.is_new:
         channel.send("RoSSH password hasn't been setup yet, please enter a password.\r\n: ")
         entering_pw=1
     else:
         channel.send("You have entered RoSSH\r\n")
-        channel.send('(' + exec_enviroment + ') ')
+        channel.send(format_console())
         channels.append(channel)
 
     #channel.send("Welcome to the Python SSH server!\r\n")
     #channel.send("> ")
 #
     set_pw = ''
-
+    prevcmd = ''
     buffer = ""
-    
+    prevchar = ''
+    prevprevchar = ''
+    idx = 0
     while True:
         data = channel.recv(1024)
         if not data:
             break
 
         for ch in data.decode(errors="ignore"):
+            if (prevprevchar == '\x1b') and (prevchar == '['):
+                # hex codes handled here
+                if ch=='A':
+                    buffer = prevcmd
+                    channel.send('\x1b[2K\r' + format_console() + buffer)
+                    prevprevchar = prevchar
+                    prevchar = ch
+                    continue
             # Enter = execute
-            #print(ch)
+
+
+            #print(ch.encode())
             if ch in ["\r", "\n"]:
                 cmd = buffer.strip()
                 buffer = ""
@@ -122,6 +136,7 @@ def handle_client(client):
                         confirming_pw = 1
                 else:
                     channel.send("\r\n")
+                    prevcmd = cmd
                     command = cmd.split(' ')[0].lower()
                     args = cmd.split(' ')[1:]
                     if command=='help':
@@ -137,8 +152,22 @@ server - goes into a server\r
                         channel.close()
                         transport.close()
                         return
-                    if command=='ping':
-                        channel.send(ask_server(server.username,exec_enviroment,{"type":"ping"}) + '\r\n')
+                    if command=='players':
+                        # if we are in global
+                        if exec_enviroment=='global':
+                            for i in ids[server.username]:
+                                players = ask_server(server.username,i[0],{"type":"players"})
+                                channel.send('----' + i[0] + '----\r\n')
+                                if players[1]==1:
+                                    channel.send('Error fetching.\r\n')
+                                else:
+                                    players = players[0]['players']
+                                    channel.send(f'Players ({len(players)}): {' '.join(players)}\r\n')
+                        else:
+                            players = ask_server(server.username,exec_enviroment,{"type":"players"})['players']
+
+                    #if command=='ping':
+                    #    channel.send(str(ask_server(server.username,exec_enviroment,{"type":"ping"})) + '\r\n')
                     if command=='list':
                         for i in ids[server.username]:
                             channel.send(i[0] + ' - ' + i[1] + '\r\n')
@@ -156,7 +185,7 @@ server - goes into a server\r
 
                             else:
                                 channel.send("Server name not valid.\r\n")
-                    channel.send('(' + exec_enviroment + ") ")
+                    channel.send(format_console())
                     #channel.send(cmd)
 
 
@@ -186,6 +215,8 @@ server - goes into a server\r
                     channel.send('*')
                 else:
                     channel.send(ch)
+            prevprevchar = prevchar
+            prevchar = ch
 
 def start_ssh_server(host="0.0.0.0", port=4545):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -215,10 +246,10 @@ def ask_server(gid, sid, data):
     currtime = time.time()
     while not requestuuid in responses[gid].keys():
         if time.time()-currtime>=30:
-            return '',1
+            return ['',1]
     response = responses[gid][requestuuid]
     del responses[gid][requestuuid]
-    return response
+    return [response,0]
 
 
 games = {}
@@ -264,7 +295,7 @@ def gamerespond():
 
 @app.route('/game/request')
 def gamerequest():
-    global games,requests
+    global games,requests, responses
     if not is_all(request.args,['key','gameid','serverid','type']):
         return 'Missing arguments!',503
     args = request.args
@@ -280,6 +311,8 @@ def gamerequest():
     stype = args['type']
     if not gid in requests.keys():
         requests[gid] = {}
+    if not gid in responses.keys():
+        responses[gid] = {}
     if not sid in requests[gid].keys():
         requests[gid][sid] = []
     requests[gid][sid] = requests[gid][sid][::-1]
