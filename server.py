@@ -146,6 +146,7 @@ quit - alias for exit\r
 logout - alias for exit\r
 help - this page xd\r
 server - goes into a server\r
+players - lists out players\r
 """)
                     if command in ["exit", "quit", "logout"]:
                         channel.send("Bye!\r\n")
