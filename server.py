@@ -1,3 +1,4 @@
+import uuid,time
 import socket
 import threading
 import paramiko,os
@@ -136,6 +137,8 @@ server - goes into a server\r
                         channel.close()
                         transport.close()
                         return
+                    if command=='ping':
+                        channel.send(ask_server(server.username,exec_enviroment,{"type":"ping"}) + '\r\n')
                     if command=='list':
                         for i in ids[server.username]:
                             channel.send(i[0] + ' - ' + i[1] + '\r\n')
@@ -202,9 +205,27 @@ def is_all(args, required):
         if not i in args.keys():
             return False
     return 1
+def ask_server(gid, sid, data):
+    global requests, responses, reqids
+    requestuuid =  str(uuid.uuid4())
+    reqids.append(requestuuid)
+    dta = data
+    dta['requestid'] = requestuuid
+    requests[gid][sid].append(dta)
+    currtime = time.time()
+    while not requestuuid in responses[gid].keys():
+        if time.time()-currtime>=30:
+            return '',1
+    response = responses[gid][requestuuid]
+    del responses[gid][requestuuid]
+    return response
+
+
 games = {}
 ids = {}
 requests = {}
+responses = {}
+reqids = []
 @app.route('/game/register')
 def slash():
     global games
@@ -216,6 +237,28 @@ def slash():
     games[request.args['gameid']] = request.args['key']
     
     return 'Hello from flask!'
+
+
+@app.route('/game/respond')
+def gamerespond():
+    global games, responses, reqids
+    if not is_all(request.args,['key','gameid','reqid','data']):
+        return 'Missing arguments!',503
+    rid = request.args['reqid']
+    key = request.args['key']
+    gid = request.args['reqid']
+
+    if not gid in games.keys():
+        return "Game not found",404
+    if games[gid]!=key:
+        return "Invalid key",403
+    if not rid in reqids:
+        return 'Invalid request ID',404
+    responses[gid][rid] = request.args['data']
+    reqids.remove(rid)
+
+    return 'Success'
+    
 
 @app.route('/game/request')
 def gamerequest():
