@@ -231,6 +231,7 @@ def gameadd():
         ids[args['gameid']] = set()
     ids[args['gameid']].add((args['serverid'],args['type']))
     return 'Success'
+#@app.route('/game/request')
 @app.route('/game/exist')
 def gameexist():
     if not is_all(request.args,['gameid','serverid','type']):
