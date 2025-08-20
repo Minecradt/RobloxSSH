@@ -254,6 +254,8 @@ def gamerespond():
         return "Invalid key",403
     if not rid in reqids:
         return 'Invalid request ID',404
+    if not gid in responses.keys():
+        responses[gid] = {}
     responses[gid][rid] = request.args['data']
     reqids.remove(rid)
 
