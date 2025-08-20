@@ -129,10 +129,24 @@ exit - Exits the terminal\r
 quit - alias for exit\r
 logout - alias for exit\r
 help - this page xd\r
+server - goes into a server\r
 """)
                     if command=='list':
                         for i in ids[server.username]:
                             channel.send(i[0] + ' - ' + i[1] + '\r\n')
+                    if command=='server':
+                        server_name = ' '.join(args)
+                        if server_name == 'global':
+                            exec_enviroment = 'global'
+                            channel.send("Success.\r\n")
+
+                        else:
+                            if len([element for element in elements if element[0] == server_name])!=0:
+                                exec_enviroment = server_name
+                                channel.send("Success.\r\n")
+
+                            else:
+                                channel.send("Server name not valid.\r\n")
                     channel.send('(' + exec_enviroment + ") ")
                     #channel.send(cmd)
 
