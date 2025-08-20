@@ -1,3 +1,4 @@
+import json
 import uuid,time
 import socket
 import threading
@@ -129,6 +130,7 @@ def handle_client(client):
                             channel.send("\r\nCorrect password. Please reconnect.\r\n")
                             channel.close()
                             transport.close()
+                            save_games()
                             return
                     else:
                         set_pw = cmd
@@ -162,10 +164,18 @@ players - lists out players\r
                                 if players[1]==1:
                                     channel.send('Error fetching.\r\n')
                                 else:
-                                    players = players[0]['players']
-                                    channel.send(f'Players ({len(players)}): {' '.join(players)}\r\n')
+                                    players = json.loads(players[0])['players']
+                                    channel.send(f'Players ({len(players)}): {', '.join(players)}\r\n')
                         else:
-                            players = ask_server(server.username,exec_enviroment,{"type":"players"})['players']
+                            players = ask_server(server.username,exec_enviroment,{"type":"players"})
+                            if players[1]==1:
+                                channel.send('Error fetching.\r\n')
+                            else:
+                                players = json.loads(players[0])['players']
+
+                                channel.send(f'Players ({len(players)}): {', '.join(players)}\r\n')
+
+
 
                     #if command=='ping':
                     #    channel.send(str(ask_server(server.username,exec_enviroment,{"type":"ping"})) + '\r\n')
@@ -340,6 +350,7 @@ def gameremove():
     if not (args['serverid'],args['type']) in ids[args['gameid']]:
         return 'Not found',404
     ids[args['gameid']].remove((args['serverid'],args['type']))
+    save_games()
     #set().remove()#
     return 'Success'
 @app.route('/game/add')
@@ -355,8 +366,16 @@ def gameadd():
     if not args['gameid'] in ids.keys():
         ids[args['gameid']] = set()
     ids[args['gameid']].add((args['serverid'],args['type']))
+    save_games()
     return 'Success'
 #@app.route('/game/request')
+
+def save_games():
+    global games,GAME_AUTH
+    json.dump(GAME_AUTH,open('auth.json','w'))
+    json.dump(games,open('game.json','w'))
+
+
 @app.route('/game/exist')
 def gameexist():
     if not is_all(request.args,['gameid','serverid','type']):
@@ -367,6 +386,10 @@ def gameexist():
     if success:
         success =((request.args['serverid'],request.args['type']) in ids[request.args['gameid']])
     return ['no','yes'][success]
+if os.path.isfile('auth.json'):
+    GAME_AUTH = json.load(open('auth.json','r'))
+if os.path.isfile('game.json'):
+    games = json.load(open('game.json','r'))
 if __name__ == "__main__":
     threading.Thread(target=app.run,daemon=1).start()
     start_ssh_server()
