@@ -246,7 +246,7 @@ def gamerespond():
         return 'Missing arguments!',503
     rid = request.args['reqid']
     key = request.args['key']
-    gid = request.args['reqid']
+    gid = request.args['gameid']
 
     if not gid in games.keys():
         return "Game not found",404
