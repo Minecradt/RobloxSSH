@@ -139,6 +139,7 @@ server - goes into a server\r
                     if command=='list':
                         for i in ids[server.username]:
                             channel.send(i[0] + ' - ' + i[1] + '\r\n')
+                    #if command=='changepw'
                     if command=='server':
                         server_name = ' '.join(args)
                         if server_name == 'global':
@@ -203,6 +204,7 @@ def is_all(args, required):
     return 1
 games = {}
 ids = {}
+requests = {}
 @app.route('/game/register')
 def slash():
     global games
@@ -214,6 +216,35 @@ def slash():
     games[request.args['gameid']] = request.args['key']
     
     return 'Hello from flask!'
+
+@app.route('/game/request')
+def gamerequest():
+    global games,requests
+    if not is_all(request.args,['key','gameid','serverid','type']):
+        return 'Missing arguments!',503
+    args = request.args
+    if not args['gameid'] in games.keys():
+        return 'Game not found',404
+    if args['key']!=games[args['gameid']]:
+        return 'Invalid key',403
+    
+    if not (args['serverid'],args['type']) in ids[args['gameid']]:
+        return 'Not found',404
+    gid = args['gameid']
+    sid = args['serverid']
+    stype = args['type']
+    if not gid in requests.keys():
+        requests[gid] = {}
+    if not sid in requests[gid].keys():
+        requests[gid][sid] = []
+    requests[gid][sid] = requests[gid][sid][::-1]
+    if len(requests[gid][sid])==0:
+        req = {"success":0}
+    else:
+        req = requests[gid][sid].pop()
+        req['success'] = 1
+        requests[gid][sid] = requests[gid][sid][::-1]
+    return req
 
 @app.route('/game/remove')
 def gameremove():
