@@ -121,7 +121,7 @@ def handle_client(client):
                         confirming_pw = 1
                 else:
                     channel.send("\r\n")
-                    command = cmd.split(' ')[0]
+                    command = cmd.split(' ')[0].lower()
                     args = cmd.split(' ')[1:]
                     if command=='help':
                         channel.send("""list - Lists all the servers.\r
@@ -131,6 +131,11 @@ logout - alias for exit\r
 help - this page xd\r
 server - goes into a server\r
 """)
+                    if command in ["exit", "quit", "logout"]:
+                        channel.send("Bye!\r\n")
+                        channel.close()
+                        transport.close()
+                        return
                     if command=='list':
                         for i in ids[server.username]:
                             channel.send(i[0] + ' - ' + i[1] + '\r\n')
@@ -141,7 +146,7 @@ server - goes into a server\r
                             channel.send("Success.\r\n")
 
                         else:
-                            if len([element for element in elements if element[0] == server_name])!=0:
+                            if len([element for element in ids[server.username] if element[0] == server_name])!=0:
                                 exec_enviroment = server_name
                                 channel.send("Success.\r\n")
 
@@ -151,11 +156,7 @@ server - goes into a server\r
                     #channel.send(cmd)
 
 
-                if cmd.lower() in ["exit", "quit", "logout"]:
-                    channel.send("Bye!\r\n")
-                    channel.close()
-                    transport.close()
-                    return
+
 #
                 #if cmd:
                 #    channel.send(f"You ran: {cmd}\r\n")
