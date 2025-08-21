@@ -2,7 +2,7 @@ import json
 import uuid,time
 import socket
 import threading
-import paramiko,os
+import paramiko,os,hashlib
 from flask import Flask, request
 KEY_FILE = 'server_key.rsa'
 if not os.path.exists(KEY_FILE):
@@ -20,12 +20,17 @@ class SSHServer(paramiko.ServerInterface):
         self.is_new = False
         self.username = b''
         self.password = b''
+        self.key_auth = False
     def check_auth_password(self, username, password):
         self.username = username
         self.password = password
         if username in GAME_AUTH:
-
-            if password==GAME_AUTH[username]:
+            success = hashlib.sha512(password.encode()).hexdigest()==GAME_AUTH[username]
+            if not success:
+                #print(games[username],password,games[username]==password)
+                success = password==games[username]
+                self.key_auth = success
+            if success:
                 return paramiko.AUTH_SUCCESSFUL
             else:
                 return paramiko.AUTH_FAILED
@@ -37,10 +42,10 @@ class SSHServer(paramiko.ServerInterface):
         #    return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
     def check_global_request(self, kind, msg):
-        print(kind,msg)
+       # print(kind,msg)
         return False
     def get_allowed_auths(self, username):
-        print(username)
+        #print(username)
         return "password"
 
     def check_channel_request(self, kind, chanid):
@@ -65,14 +70,16 @@ def handle_client(client):
     try:
         transport.start_server(server=server)
     except paramiko.SSHException:
-        print("SSH negotiation failed")
+        #print("SSH negotiation failed")
         return
 
     channel = transport.accept(20)
     if channel is None:
-        print("No channel")
+        #print("No channel")
         return
     entering_pw = 0
+    if server.key_auth:
+        channel.send('-------- YOU ARE USING KEY AUTHENTICATION --------\r\n')
     if not server.username in games.keys():
         channel.send("This game is NOT running RoSSH\r\n")
         channel.close()
@@ -107,8 +114,15 @@ def handle_client(client):
 
         for ch in data.decode(errors="ignore"):
             if exec_enviroment!='global':
-                if not exec_enviroment in ids[server.username].keys():
+                #print(ids,server.username)
+                filter_thing = 0
+                for i in ids[server.username]:
+                    if i[0]==exec_enviroment:
+                        filter_thing = 1
+                if filter_thing==0:
                     exec_enviroment = 'global'
+                #if not exec_enviroment in ids[server.username].keys():
+                #    exec_enviroment = 'global'
                    # channel.send("Yo")
             if (prevprevchar == '\x1b') and (prevchar == '['):
                 # hex codes handled here
@@ -130,7 +144,7 @@ def handle_client(client):
                         if cmd!=set_pw:
                             channel.send("\r\nPasswords do not match, try again.\r\n: ")
                         else:
-                            GAME_AUTH[server.username] = cmd
+                            GAME_AUTH[server.username] = hashlib.sha512(cmd.encode()).hexdigest()
                             channel.send("\r\nCorrect password. Please reconnect.\r\n")
                             channel.close()
                             transport.close()
@@ -255,7 +269,7 @@ kick - Kicks player\r
             prevprevchar = prevchar
             prevchar = ch
 
-def start_ssh_server(host="0.0.0.0", port=4545):
+def start_ssh_server(host="0.0.0.0", port=2323):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((host, port))
     sock.listen(100)
