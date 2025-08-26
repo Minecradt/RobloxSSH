@@ -205,7 +205,7 @@ kick - Kicks player\r
                                     channel.send('Error fetching.\r\n')
                                 else:
                                     players = json.loads(players[0])['players']
-                                    channel.send(f'Players ({len(players)}): {', '.join(players)}\r\n')
+                                    channel.send(f'Players ({len(players)}): {", ".join(players)}\r\n')
                         else:
                             players = ask_server(server.username,exec_enviroment,{"type":"players"})
                             if players[1]==1:
@@ -213,7 +213,7 @@ kick - Kicks player\r
                             else:
                                 players = json.loads(players[0])['players']
 
-                                channel.send(f'Players ({len(players)}): {', '.join(players)}\r\n')
+                                channel.send(f'Players ({len(players)}): {", ".join(players)}\r\n')
 
 
 
