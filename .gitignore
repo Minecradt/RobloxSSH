@@ -1,3 +1,4 @@
 auth.json
 game.json
-settings.json
+server_key.rsa
+.gitignore
