@@ -121,6 +121,7 @@ def handle_client(client):
     prevchar = ''
     prevprevchar = ''
     idx = 0
+    in_code = False
     while True:
         data = channel.recv(1024)
         if not data:
@@ -166,15 +167,72 @@ def handle_client(client):
                             transport.close()
                             save_games()
                             return
+                                
+
                     else:
                         set_pw = cmd
                         channel.send('\r\nPlease confirm your password\r\n: ')
                         confirming_pw = 1
+                elif in_code and (not cmd.startswith('!')):
+                        channel.send("\r\n")
+
+                        #if cmd=='!exit':
+                        #    in_code = False
+                        #    console_format = '({exec}) '
+                        if True:
+                            if exec_enviroment == 'global':
+                                for i in ids[server.username]:
+                                    players = ask_server(server.username, i[0],
+                                                         {"type": "code","code":cmd})
+                                    channel.send('----' + i[0] + '----\r\n')
+                                    if players[1] == 1:
+                                        channel.send('Error fetching.\r\n')
+                                    else:
+                                        out = json.loads(players[0])
+                                        send_message = ""
+                                        if out['success']==0:
+                                            send_message = 'Error: '
+                                        else:
+                                            send_message = 'Output: '
+                                        if not 'msg' in out.keys():
+                                            out['msg'] = ''
+                                        send_message += out['msg']
+                                        channel.send(send_message + '\r\n')
+                                        #channel.send(
+                                        #    f'Players ({len(players)}): {", ".join(players)}\r\n'
+                                        #)
+                            else:
+                                players = ask_server(server.username,
+                                                     exec_enviroment,
+                                                     {"type": "players"})
+                                if players[1] == 1:
+                                    channel.send('Error fetching.\r\n')
+                                else:
+                                    out = json.loads(players[0])
+                                    send_message = ""
+                                    if out['success']==0:
+                                        send_message = 'Error: '
+                                    else:
+                                        send_message = 'Output: '
+                                    send_message += out['msg']
+                                    channel.send(send_message + '\r\n')
+                            channel.send(format_console())
+                        
+                    
                 else:
                     channel.send("\r\n")
+                    if cmd.startswith('!') and in_code:
+                        cmd = cmd[1:]
                     prevcmd = cmd
                     command = cmd.split(' ')[0].lower()
                     args = cmd.split(' ')[1:]
+                    if command=='code':
+                        in_code = 1
+                        console_format = "({exec}) [Exec] "
+                        channel.send('To run regular commands, use !<regular command>.\r\n')
+                    if command=='terminal' and in_code:
+                        in_code=0
+                        console_format='({exec}) '
                     if command == 'help':
                         channel.send("""list - Lists all the servers.\r
 exit - Exits the terminal\r
@@ -185,6 +243,8 @@ server serverid/global - goes into a server\r
 players - lists out players\r
 kick player [reason]- Kicks player\r
 kickall [reason] - Kicks everyone\r
+terminal (Code enviroment only) - Exits the code enviroment\r
+code - Enters the code enviroment. \r
 """)
                     if command in ["exit", "quit", "logout"]:
                         channel.send("Bye!\r\n")
