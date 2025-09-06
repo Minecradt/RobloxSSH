@@ -179,6 +179,7 @@ def handle_client(client):
                         #if cmd=='!exit':
                         #    in_code = False
                         #    console_format = '({exec}) '
+                        prevcmd = cmd
                         if True:
                             if exec_enviroment == 'global':
                                 for i in ids[server.username]:
@@ -221,9 +222,10 @@ def handle_client(client):
                     
                 else:
                     channel.send("\r\n")
+                    prevcmd = cmd
+
                     if cmd.startswith('!') and in_code:
                         cmd = cmd[1:]
-                    prevcmd = cmd
                     command = cmd.split(' ')[0].lower()
                     args = cmd.split(' ')[1:]
                     if command=='code':
