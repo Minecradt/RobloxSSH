@@ -3,5 +3,6 @@
     "python-envs.pythonProjects": [],
     "githubPullRequests.ignoredPullRequestBranches": [
         "master"
-    ]
+    ],
+    "python.analysis.autoImportCompletions": true
 }
