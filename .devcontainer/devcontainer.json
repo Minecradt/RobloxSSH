@@ -1,0 +1,5 @@
+{
+  "postAttachCommand": {
+    "server": "/usr/local/python/current/bin/python server.py"
+  }
+}
